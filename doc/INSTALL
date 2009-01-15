@@ -1,0 +1,27 @@
+Installation
+============
+
+GDBase relies on:
+
+* gdb-6.8				http://sourceware.org/gdb/
+* sqlite-3.5.9			http://www.sqlite.org/
+* tcl-8.4.19			http://www.tcl.tk/
+* postgresql-8.3.3		http://www.postgresql.org/
+* Python-2.5.2			http://www.python.org/
+* PyGreSQL-3.8.1		http://www.druid.net/pygresql/
+
+The versions listed above have been tested with GDBase but earlier versions
+will likely work as well. If you have these installed already you're all
+set. Set GDBASE_PREFIX to your install directory and run:
+
+	make
+	make install
+
+If you plan on using the postgres database to collect your debugging
+information you will need to config gdbase for your server. Currently, no
+config file exists and you must edit the `src/dbmerge.c` file. On line 73
+you will see something like this:
+
+	conn = PQconnectdb("dbname=OPD host=hpcdb.local port=5432 user=opd password=opd123");
+
+Change the information to match your needs. 

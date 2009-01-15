@@ -1,0 +1,141 @@
+GDBase Documentation
+====================
+
+Basic Usage
+-----------
+
+Compile your application with debugging flags using the -g switch.
+Change your job execution script to include the GDBase wrapper script
+in place of mpi_exec. 
+
+	baseexec application arg1 arg2
+
+This will execute your application under GDBase and detect errors when
+they occur. No other debugging will be performed.
+
+Once your job is complete, run the gdbase analysis tool.
+
+	gdbase --agent segreport -j JOBID
+
+Where `JOBID` is the identifier used by your scheduling system.
+
+
+Setting Breakpoints
+-------------------
+
+You have a couple options when setting breakpoints in your
+application. The simplest way is to create a debugging specification
+file. You may tell GDBase the location of your specification file using
+the -d or --debug-spec command line switch.
+
+	baseexec -d specfile application
+
+Here is what a debugging spec file might look like:
+
+	# This is a comment
+	# @bp sets a breakpoint
+
+	# Immediately following a breakpoint you may define any number
+	# of variables you wish to log. Each variable should be on
+	# its own line. 
+	
+	# When breakpoints are hit, a stack trace will automatically be
+	# loged in the database.
+
+	@bp functionName
+		variable1
+		variable2
+
+	@bp myapp.c:231
+		variable3
+
+	# @watch sets a watchpoint
+	# argument 1: the location in code where the watchpoint is created
+	# argument 2: the name of the variable to watch
+
+	@watch myapp.c:10 variable4
+
+
+Advanced Control
+----------------
+
+If the debugging specification file doesn't give you enough control,
+you may write your own debugging script in which you can perform any
+set of operations the TCL language provides including conditionals.
+
+	baseexec -s scriptfile myapp
+
+Within the scrip, the first method executed is `user_setup`. Every
+debugging script you write must contain this method. This is where you
+want to set your initial breakpoints and the methods that are called
+when a breakpoint is hit. The example script below illustrates setting a
+single a breakpoint and performing a few operations when the breakpoint
+is reached.
+
+	# TCL Comments begin with a # symbol
+
+	proc user_setup {} {
+		gdb_setBreakpoint "main" "get_info"
+		set output [gdb_lastOutput]
+		db_logMessage "user.break" $output
+	}
+
+	proc get_info {} {
+		gdb_getStackFrames
+		set output [gdb_lastOutput]
+		db_logMessage "myinfo" $output
+
+		gdb_listLocals
+		set output [gdb_lastOutput]
+		db_logMessage "myinfo" $output
+
+		gdb_evalExpr var_name
+		set output [gdb_lastOutput]
+		db_logMessage "myinfo" $output
+
+		gdb_continue
+	}
+
+Method Reference
+----------------
+
+Here is a list of currently supported methods for use in a debugging
+script files. Most of these replicate a function of GDB.
+
+`db_logMessage messagekey messagevalue`
+Log a message to the database.
+
+`gdb_lastOutput`
+Retrieve the last GDB output.
+
+`gdb_setBreakpoint location tclmethod`
+Set a breakpoint.
+
+`gdb_setWatchpoint mode variable`
+Set a watchpoint.
+
+`gdb_getStackFrames`
+Get the local stack frames.
+
+`gdb_evalExpr expression`
+Use GDB's expression evalutation.
+
+`gdb_listLocals`
+List all local variables.
+
+`gdb_continue`
+Resume execution.
+
+`gdb_stepNext`
+Step one line of code.
+
+`gdb_stepFinish`
+Resumes the execution of the inferior program until the current function
+is exited.
+
+`opd_getRank`
+Get the current rank or MPI task number.
+
+`opd_getSize`
+Get the number of tasks in the current job.
+

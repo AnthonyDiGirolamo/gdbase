@@ -1,0 +1,12 @@
+GDBase
+======
+
+GDBase is an off-line, or non-interactive, framework for debugging MPI
+applications. It provides a method for users to define debugger
+behavior, collect results to a database, and analyze the the
+information postmortem.
+
+If you have any questions please contact anthony.digirolamo@gmail.com
+
+Thanks!
+
