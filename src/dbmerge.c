@@ -51,13 +51,13 @@ void printhelp() {
 
 int main(int argc, char* argv[])
 {
-	char *temp;
-	char *jobid;
-	char *jobid_var;
-	char *jobname;
-	char *jobname_var;
-	char *config_file;
-	char *database;
+	char *temp = NULL;
+	char *jobid = NULL;
+	char *jobid_var = NULL;
+	char *jobname = NULL;
+	char *jobname_var = NULL;
+	char *config_file = NULL;
+	char *database = NULL;
 
 	int jobnum;
 	char s_jobnum[256];

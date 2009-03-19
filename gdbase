@@ -27,7 +27,7 @@ if os.environ.keys().count('GDBASE_PREFIX') > 0:
 from gdbase import *
 
 def usage():
-	st = """Usage: gdbase -c database_config [-a agent] [-j jobid]"""
+	st = """Usage: gdbase -c database_config -j jobid [-a agent]"""
 	print st
 
 def main():
@@ -61,13 +61,15 @@ def main():
 	database = database.replace('\n','')
 	db1 = database.split(' ')
 	db2 = []
+	
 	for i in db1:
-		 db2.append(i.split('='))
+		db2.append(i.split('='))
+
 	dbdict = dict(db2)
 	database = dbdict['host'] + ':' + dbdict['dbname'] + ':' + dbdict['user'] + ':' + dbdict['password']
-
 	exec "from endofrun import *"
 	agent(jobid, database)
+	#agent(jobid)
 
 	# add error checking on agent names
 

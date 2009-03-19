@@ -116,31 +116,31 @@ void catch_alarm (int sig) {
 
 int main(int argc, char* argv[])
 {
-	char *config_file;
+	char *config_file = NULL;
 	int using_mpi = 1; // assume we use mpi
 	
 	// Environment variable names
-	char *jobid;
-	char *jobid_var;
-	char *rank_var;
-	char *nprocs_var;
+	char *jobid = NULL;
+	char *jobid_var = NULL;
+	char *rank_var = NULL;
+	char *nprocs_var = NULL;
 
 	// Timeout + target app
-	char *timeout_string;
+	char *timeout_string = NULL;
 	int timeout = 0;
-	char *target;
-	char *arguments;
+	char *target = NULL;
+	char *arguments = NULL;
 	char target_basename[512];
 	
 	// Script files
-	char *spec_file;
-	char *script_file;
+	char *spec_file = NULL;
+	char *script_file = NULL;
 	
 	// Directories
-	char *prefix;
-	char *opd_dir;
-	char *gdb_location;
-	char *temp_dir;
+	char *prefix = NULL;
+	char *opd_dir = NULL;
+	char *gdb_location = NULL;
+	char *temp_dir = NULL;
 	char working_dir[4096];
 
 	char *temp;
@@ -279,12 +279,12 @@ int main(int argc, char* argv[])
 	// Get environment variables		
 
 	// MPI Vars
-	if (rank_var)
+	if (rank_var != NULL)
 		if (getenv(rank_var)) {
 			temp = getenv(rank_var);
 			rank = atoi(temp);
 		}
-	if (nprocs_var)
+	if (nprocs_var != NULL)
 		if (getenv(nprocs_var)) {
 			temp = getenv(nprocs_var);
 			size = atoi(temp);
@@ -315,7 +315,7 @@ int main(int argc, char* argv[])
 	}
 
 	// If jobid wasn't manually set
-	if (!jobid) {
+	if (jobid == NULL) {
 		// check for a custom env var
 		if (jobid_var) {
 			if(getenv(jobid_var))
@@ -329,12 +329,10 @@ int main(int argc, char* argv[])
 			jobid = "UNKNOWNID";
 	}
 	// Prefix
-	if (!opd_dir) {
+	if (opd_dir == NULL)
 		opd_dir = "/usr/local/bin";
-		if(getenv("GDBASE_PREFIX")) {
-			opd_dir = getenv("GDBASE_PREFIX");
-		}
-	}
+	if(getenv("GDBASE_PREFIX"))
+		opd_dir = getenv("GDBASE_PREFIX");  
 	sprintf(strbuf, "%s/bin/opd", opd_dir);
 	if(!exists(strbuf))
 	{
@@ -345,12 +343,10 @@ int main(int argc, char* argv[])
 	}
 
 	// GDB
-	if (!gdb_location) {
+	if (gdb_location == NULL)
 		gdb_location = "/usr/bin/gdb";
-		if (getenv("GDB_BINARY")) {
-			gdb_location = getenv("GDB_BINARY");
-		}
-	}
+	if (getenv("GDB_BINARY"))
+		gdb_location = getenv("GDB_BINARY");
 	if(!exists(gdb_location))
 	{
 		if (rank==0)
@@ -359,7 +355,7 @@ int main(int argc, char* argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	if (timeout_string) {
+	if (timeout_string != NULL) {
 		timeout = atoi(timeout_string);
 		if (timeout < 1 ) {
 			if (rank==0)
@@ -369,6 +365,7 @@ int main(int argc, char* argv[])
 		}
 	}
 
+	// TODO
 	// Read Config File and update options that are NULL
 	// (i.e. not already read from env or the command line)
 
@@ -426,11 +423,13 @@ int main(int argc, char* argv[])
 	Tcl_CreateObjCommand(interp, "gdb_setBreakpoint", gdb_tcl_setbreakpoint, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
 	Tcl_CreateObjCommand(interp, "gdb_setWatchpoint", gdb_tcl_setwatchpoint, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
 	Tcl_CreateObjCommand(interp, "gdb_getStackFrames", gdb_tcl_getStackFrames, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
+	Tcl_CreateObjCommand(interp, "gdb_getStackArgs", gdb_tcl_getStackFrames, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
 	Tcl_CreateObjCommand(interp, "gdb_evalExpr", gdb_tcl_evalExpr, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
 	Tcl_CreateObjCommand(interp, "gdb_listLocals", gdb_tcl_listLocals, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
 	Tcl_CreateObjCommand(interp, "gdb_continue", gdb_tcl_continue, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
 	Tcl_CreateObjCommand(interp, "opd_setExit", opd_tcl_setExit, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
 	Tcl_CreateObjCommand(interp, "gdb_stepNext", gdb_tcl_stepNext, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
+	Tcl_CreateObjCommand(interp, "gdb_step", gdb_tcl_stepNext, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
 	Tcl_CreateObjCommand(interp, "gdb_stepFinish", gdb_tcl_stepFinish, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
 	Tcl_CreateObjCommand(interp, "gdb_setPID", gdb_tcl_set_pid, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
 	Tcl_CreateObjCommand(interp, "gdb_call", gdb_tcl_call, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);

@@ -32,8 +32,6 @@ def agent(jobid = None, database = None):
 		print 'Job not found'
 		return
 
-
-
 	#print "OPD End of execution report"
 	print "PBS JOBID: %s" % (J.getPBSID())
 	print "DatabaseID: %s" % (J.getDBID())

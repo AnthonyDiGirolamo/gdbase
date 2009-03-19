@@ -140,9 +140,7 @@ class Job:
 		cur.execute("select * from jobs where queueid = '%s'" % name)
 
 		idIndex = findIndex(cur,'id')
-	
 		res = cur.fetchone()
-
 		self.jobid = res[idIndex]
 		return
 	def getPBSID(self):

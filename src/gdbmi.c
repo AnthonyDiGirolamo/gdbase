@@ -178,6 +178,14 @@ int gdb_stepNext()
 	return 0;
 }
 
+int gdb_step()
+{
+	fprintf(gdb_stdin,"-exec-step\n");
+	gdb_waitforEvent(GDB_STEP);
+	return 0;
+}
+
+
 int gdb_stepFinish()
 {
 	fprintf(gdb_stdin,"-exec-finish\n");
@@ -543,14 +551,34 @@ int gdb_tcl_listLocals(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_
 
 	return TCL_OK;
 }
+
 int gdb_tcl_getStackFrames(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
 	Tcl_Obj *objPtr;
 
 	if(objc!=1) { Tcl_WrongNumArgs(interp, 1, objv, "value"); return TCL_ERROR; }
 
+	// fprintf(gdb_stdin, "-stack-list-frames --all-values\n");
 	fprintf(gdb_stdin, "-stack-list-frames\n");
-//	printf("input: -stack-list-frames\n");
+
+        //Find result
+        gdb_getresponse();
+
+        //Return breakpoint number as result
+        objPtr = Tcl_GetObjResult(interp);
+
+        Tcl_SetIntObj(objPtr, 1);
+
+        return TCL_OK;
+}
+
+int gdb_tcl_getStackArgs(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+{
+	Tcl_Obj *objPtr;
+
+	if(objc!=1) { Tcl_WrongNumArgs(interp, 1, objv, "value"); return TCL_ERROR; }
+
+	fprintf(gdb_stdin, "-stack-list-arguments 1\n");
 
         //Find result
         gdb_getresponse();
@@ -578,6 +606,23 @@ int gdb_tcl_stepNext(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Ob
 
         return TCL_OK;
 }
+
+int gdb_tcl_step(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+{
+        Tcl_Obj *objPtr;
+
+        if(objc!=1) { Tcl_WrongNumArgs(interp, 1, objv, "value"); return TCL_ERROR; }
+
+	gdb_step();
+
+        //Return breakpoint number as result
+        objPtr = Tcl_GetObjResult(interp);
+
+        Tcl_SetIntObj(objPtr, 1);
+
+        return TCL_OK;
+}
+
 
 int gdb_tcl_stepFinish(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
