@@ -40,7 +40,7 @@ Tcl_Interp* interp;
 void opd_exit(int normal);
 
 int exists(const char *filename) {
-    return !access(filename, F_OK);
+	return !access(filename, F_OK);
 }
 
 int opd_tcl_setExit(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
@@ -107,8 +107,7 @@ void catch_alarm (int sig) {
 	opd_exit(1);
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
 	char *config_file = NULL;
 	int using_mpi = 1; // assume we use mpi
 
@@ -173,65 +172,65 @@ int main(int argc, char* argv[])
 		if (c == -1) break;
 
 		switch (c) {
-			case 'e':
-				target = optarg;
-				break;
-			case 'a':
-				arguments = optarg;
-				break;
-			case 'h':
-				printhelp();
-				return EXIT_SUCCESS;
-				break;
-			case 'c':
-				config_file = optarg;
-				break;
-			case 'd':
-				spec_file = optarg;
-				break;
-			case 's':
-				script_file = optarg;
-				break;
-			case 't':
-				timeout_string = optarg;
-				break;
-			case 'p':
-				opd_dir = optarg;
-				break;
-			case 'g':
-				gdb_location = optarg;
-				break;
-			case 'T':
-				temp_dir = optarg;
-				break;
-			case 'j':
-				jobid = optarg;
-				break;
-			case 'J':
-				jobid_var = optarg;
-				break;
-			case 'r':
-				rank_var = optarg;
-				break;
-			case 'n':
-				nprocs_var = optarg;
-				break;
-			default:
-				abort();
+		case 'e':
+			target = optarg;
+			break;
+		case 'a':
+			arguments = optarg;
+			break;
+		case 'h':
+			printhelp();
+			return EXIT_SUCCESS;
+			break;
+		case 'c':
+			config_file = optarg;
+			break;
+		case 'd':
+			spec_file = optarg;
+			break;
+		case 's':
+			script_file = optarg;
+			break;
+		case 't':
+			timeout_string = optarg;
+			break;
+		case 'p':
+			opd_dir = optarg;
+			break;
+		case 'g':
+			gdb_location = optarg;
+			break;
+		case 'T':
+			temp_dir = optarg;
+			break;
+		case 'j':
+			jobid = optarg;
+			break;
+		case 'J':
+			jobid_var = optarg;
+			break;
+		case 'r':
+			rank_var = optarg;
+			break;
+		case 'n':
+			nprocs_var = optarg;
+			break;
+		default:
+			abort();
 		}
 	}
 
 	// Did we include a target app?
 	if (!target) {
 		fprintf(stderr, "%s: Missing target application. Try -h for help.\n",
-			PROGRAM_NAME);
+		        PROGRAM_NAME);
 		exit(EXIT_FAILURE);
 	}
 
 	// Does the target app exist?
 	if (!exists(target)) {
 		fprintf(stderr, "%s: Cannot find target application: %s\n",
-			PROGRAM_NAME, target);
+		        PROGRAM_NAME, target);
 		exit(EXIT_FAILURE);
 	}
 
@@ -241,8 +240,7 @@ int main(int argc, char* argv[])
 	if (temp) {
 		temp = basename(target);
 		strcpy(target_basename, temp);
-	}
-	else
+	} else
 		strcpy(target_basename, target);
 
 	// Get environment variables
@@ -280,34 +278,31 @@ int main(int argc, char* argv[])
 		rank = 0;
 		size = 1;
 		printf("%s: MPI not found, running without.\n",
-			PROGRAM_NAME);
+		       PROGRAM_NAME);
 	}
 
 	// If jobid wasn't manually set
 	if (jobid == NULL) {
 		// check for a custom env var
 		if (jobid_var) {
-			if(getenv(jobid_var))
+			if (getenv(jobid_var))
 				jobid = getenv(jobid_var);
-		}
-		else // check for PBS
-		if(getenv("PBS_JOBID")) {
-			jobid = getenv("PBS_JOBID");
-		}
-		else // don't know
-			jobid = "UNKNOWNID";
+		} else // check for PBS
+			if (getenv("PBS_JOBID")) {
+				jobid = getenv("PBS_JOBID");
+			} else // don't know
+				jobid = "UNKNOWNID";
 	}
 	// Prefix
 	if (opd_dir == NULL)
 		opd_dir = "/usr/local/bin";
-	if(getenv("GDBASE_PREFIX"))
+	if (getenv("GDBASE_PREFIX"))
 		opd_dir = getenv("GDBASE_PREFIX");
 	sprintf(strbuf, "%s/bin/opd", opd_dir);
-	if(!exists(strbuf))
-	{
+	if (!exists(strbuf)) {
 		if (rank==0)
-		fprintf(stderr, "%s: Cannot find GDBase in '%s' please specify a prefix.\n",
-			PROGRAM_NAME, opd_dir);
+			fprintf(stderr, "%s: Cannot find GDBase in '%s' please specify a prefix.\n",
+			        PROGRAM_NAME, opd_dir);
 		exit(EXIT_FAILURE);
 	}
 
@@ -316,11 +311,10 @@ int main(int argc, char* argv[])
 		gdb_location = "/usr/bin/gdb";
 	if (getenv("GDB_BINARY"))
 		gdb_location = getenv("GDB_BINARY");
-	if(!exists(gdb_location))
-	{
+	if (!exists(gdb_location)) {
 		if (rank==0)
-		fprintf(stderr, "%s: Cannot find gdb executable.\n",
-			PROGRAM_NAME);
+			fprintf(stderr, "%s: Cannot find gdb executable.\n",
+			        PROGRAM_NAME);
 		exit(EXIT_FAILURE);
 	}
 
@@ -328,8 +322,8 @@ int main(int argc, char* argv[])
 		timeout = atoi(timeout_string);
 		if (timeout < 1 ) {
 			if (rank==0)
-			fprintf(stderr, "%s: Invalid timeout value: %s\n",
-				PROGRAM_NAME, timeout_string);
+				fprintf(stderr, "%s: Invalid timeout value: %s\n",
+				        PROGRAM_NAME, timeout_string);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -345,35 +339,35 @@ int main(int argc, char* argv[])
 		printf("== Prefix:              %s\n", opd_dir);
 		printf("== Using gdb:           %s\n", gdb_location);
 		if (config_file)
-		printf("== Using config file:   %s\n", config_file);
+			printf("== Using config file:   %s\n", config_file);
 		printf("==\n");
 		printf("== Working Directory:   %s\n", working_dir);
 		printf("== Target Application:  %s\n", target_basename);
 		if (arguments)
-		printf("== Target Arguments:    %s\n", arguments);
+			printf("== Target Arguments:    %s\n", arguments);
 		printf("== Job ID:              %s\n", jobid);
 		printf("== Number of Processes: %d\n", size);
 		if (spec_file)
-		printf("== Spec File:           %s\n", spec_file);
+			printf("== Spec File:           %s\n", spec_file);
 		if (script_file)
-		printf("== Script File:         %s\n", script_file);
+			printf("== Script File:         %s\n", script_file);
 		if (timeout)
-		printf("== Timeout (s):         %d\n", timeout);
+			printf("== Timeout (s):         %d\n", timeout);
 		if (temp_dir)
-		printf("== Temp File Directory: %s\n", temp_dir);
+			printf("== Temp File Directory: %s\n", temp_dir);
 	}
 
 	// Name and open the new sqlite file
 	sprintf(strbuf, "%s-%s.%d", "gdblog", target_basename, rank);
 
-	if(temp_dir != NULL)
+	if (temp_dir != NULL)
 		sprintf(strbuf, "%s/%s-%s.%d", temp_dir, "gdblog", target_basename, rank);
 
 	if (exists(strbuf))
 		remove(strbuf);
 	if (db_open(strbuf)) {
 		fprintf(stderr, "%s: Temporary log file could not be opened: %s\n",
-			PROGRAM_NAME, strbuf);
+		        PROGRAM_NAME, strbuf);
 		exit(EXIT_FAILURE);
 	}
 
@@ -425,11 +419,10 @@ int main(int argc, char* argv[])
 
 	//Startup GDB in proper mode
 	gdb_setup(target, gdb_location);
-	if(arguments)
+	if (arguments)
 		gdb_set_arguments(arguments);
 
-	if(script_file)
-	{
+	if (script_file) {
 		// db_logMessage("opd.message", strcat("Processing user script: ",strbuf));
 		if (Tcl_EvalFile(interp, script_file) != TCL_OK) {
 			errors = Tcl_GetStdChannel(TCL_STDERR);
@@ -445,12 +438,11 @@ int main(int argc, char* argv[])
 
 	Tcl_Eval(interp, "opd_setup");
 
-	if(spec_file) {
+	if (spec_file) {
 		if (exists(spec_file)) {
 			sprintf(strbuf, "opd_processscript \"%s\"", spec_file);
 			Tcl_Eval(interp, strbuf);
-		}
-		else {
+		} else {
 			printf("couldn't read file \"%s\": no such file or directory\n", spec_file);
 			opd_exit(1);
 			return 1;
@@ -487,46 +479,46 @@ int main(int argc, char* argv[])
 
 		//printf("%d, %d\n", rank, event);
 
-		switch(event) {
-			case GDB_STDERR:
-				Tcl_Eval(interp, "opd_dispatchStdErr");
-				break;
-			case GDB_GDBMSG:
-				Tcl_Eval(interp, "opd_dispatchGDB");
-				break;
-			case GDB_BRKPNT:
-				Tcl_Eval(interp, gdb_dispatchBreakpoint());
-				break;
-			case GDB_WPT:
-				Tcl_Eval(interp, gdb_dispatchWatchpointTrigger());
-				break;
-			case GDB_WPS:
-				Tcl_Eval(interp, gdb_dispatchWatchpointScope());
-				break;
-			case GDB_SIGSEG:
-				Tcl_Eval(interp, "opd_dispatchSigSeg");
-				break;
-			case GDB_STDOUT:
-				Tcl_Eval(interp, "opd_dispatchStdOut");
-				break;
-			case GDB_PRGEXT:
-				Tcl_Eval(interp, "opd_dispatchPrgExt");
-				exitflag = 2;
-				break;
+		switch (event) {
+		case GDB_STDERR:
+			Tcl_Eval(interp, "opd_dispatchStdErr");
+			break;
+		case GDB_GDBMSG:
+			Tcl_Eval(interp, "opd_dispatchGDB");
+			break;
+		case GDB_BRKPNT:
+			Tcl_Eval(interp, gdb_dispatchBreakpoint());
+			break;
+		case GDB_WPT:
+			Tcl_Eval(interp, gdb_dispatchWatchpointTrigger());
+			break;
+		case GDB_WPS:
+			Tcl_Eval(interp, gdb_dispatchWatchpointScope());
+			break;
+		case GDB_SIGSEG:
+			Tcl_Eval(interp, "opd_dispatchSigSeg");
+			break;
+		case GDB_STDOUT:
+			Tcl_Eval(interp, "opd_dispatchStdOut");
+			break;
+		case GDB_PRGEXT:
+			Tcl_Eval(interp, "opd_dispatchPrgExt");
+			exitflag = 2;
+			break;
 
 			//DO NOTHING
-			case GDB_RUNNING:
-			case GDB_PROMPT:
-			case 0:
-				break;
-			default:
-				Tcl_Eval(interp, "opd_dispatchOther");
-				break;
+		case GDB_RUNNING:
+		case GDB_PROMPT:
+		case 0:
+			break;
+		default:
+			Tcl_Eval(interp, "opd_dispatchOther");
+			break;
 		}
 
-	} while(!exitflag);
+	} while (!exitflag);
 
-	if(exitflag==1 && using_mpi)
+	if (exitflag==1 && using_mpi)
 		opd_exit(0);
 
 	opd_exit(1);
@@ -540,6 +532,6 @@ void opd_exit(int normal) {
 	//exit program
 	gdb_exit();
 	//Only do this if we crash, otherwise exit normally
-	if(!normal)
+	if (!normal)
 		abort();
 }

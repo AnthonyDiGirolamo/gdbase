@@ -1,18 +1,18 @@
 /* This file is part of GDBase.
- * 
+ *
  * GDBase is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * GDBase is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with GDBase.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Copyright 2009 Anthony DiGirolamo, Dan Stanzione, Karl Lindekugel
  */
 
@@ -49,34 +49,32 @@ typedef	struct s_bp {
 void gdb_waitforEvent(int eventtype);
 void  gdb_waitforprompt();
 
-int gdb_setup(char *programname, char* gdb_location)
-{
+int gdb_setup(char *programname, char* gdb_location) {
 	//Startup GDB in proper mode
 	child_pid = 0;
-	
+
 	//setup 2 input pipes (stdout, stderr) and one output pipe (stdin) for GDB
 	pipe(gdb_p_stdout );
 	pipe(gdb_p_stderr );
 	pipe(gdb_p_stdin );
 
-	if((gdb_pid = fork()) == 0)
-	{	//Child
+	if ((gdb_pid = fork()) == 0) {	//Child
 		//setup my pipes by overwriting all standard pipes!
 		//0 stdin 1 stdout 2 stderr
 		dup2(gdb_p_stdin[0], 0);
 		dup2(gdb_p_stdout[1], 1);
 		dup2(gdb_p_stderr[1], 2);
-		
+
 		close(gdb_p_stdin[1]);
 		close(gdb_p_stdout[0]);
 		close(gdb_p_stderr[0]);
-		
+
 		//Exec GDB
 		execl(gdb_location, "gdb", "--quiet", "--interpreter=mi", programname, NULL);
 	}
 
 	//setup our pipes
-	gdb_stdout = fdopen (gdb_p_stdout[0], "r");	
+	gdb_stdout = fdopen (gdb_p_stdout[0], "r");
 	gdb_stderr = fdopen (gdb_p_stderr[0], "r");
 	gdb_stdin  = fdopen (gdb_p_stdin[1], "w");
 
@@ -97,16 +95,14 @@ int gdb_setup(char *programname, char* gdb_location)
 	return 0;
 }
 
-void gdb_interrupt()
-{
+void gdb_interrupt() {
 	printf("Killing %d\n", child_pid);
 	kill(child_pid, SIGINT);
 
 	gdb_waitforEvent(GDB_SIGINT);
 }
 
-void gdb_call(char* func, char* buffer)
-{
+void gdb_call(char* func, char* buffer) {
 	char *location;
 	int i;
 	i = 0;
@@ -114,155 +110,142 @@ void gdb_call(char* func, char* buffer)
 
 	fprintf(gdb_stdin, "-interpreter-exec console \"call %s\"\n", func);
 	do {
-                gdb_next_event();
-        } while(NULL== strstr(gdb_lastoutput(), " = "));
+		gdb_next_event();
+	} while (NULL== strstr(gdb_lastoutput(), " = "));
 
 	location = strstr(gdb_lastoutput(), " = ");
-        location += strlen(" = ");
+	location += strlen(" = ");
 
-	while(*location != '\"') buffer[i++] = *location++;
+	while (*location != '\"') buffer[i++] = *location++;
 
 	gdb_waitforEvent(GDB_PROMPT);
 
 }
 
-void gdb_set_pid()
-{
-        int i;
-        char *location;
+void gdb_set_pid() {
+	int i;
+	char *location;
 	char buffer[256];
 
 	memset(buffer, '\0', sizeof(char)*256);
-        i = 0;
+	i = 0;
 
-	gdb_call("getpid()", buffer); 
-	
-        i = atoi(buffer);
+	gdb_call("getpid()", buffer);
+
+	i = atoi(buffer);
 
 	child_pid = i;
 }
 
-void gdb_set(char *var, char *value)
-{
+void gdb_set(char *var, char *value) {
 	fprintf(gdb_stdin, "-gdb-set %s = %s \n", var, value);
-	gdb_getresponse();	
+	gdb_getresponse();
 }
-	
+
 
 //Start application with its arguments "-exec-arguments args "
-int gdb_set_arguments(char *args)
-{
+int gdb_set_arguments(char *args) {
 	fprintf(gdb_stdin, "-exec-arguments %s\n", args);
 	//printf("input: -exec-arguments %s\n", args);
 	return 0;
 }
 
-int gdb_start_run() 
-{
+int gdb_start_run() {
 	fprintf(gdb_stdin, "-exec-run\n");
 //	printf("input: -exec-run\n");
 	return 0;
 }
 
-int gdb_continue() 
-{
+int gdb_continue() {
 	fprintf(gdb_stdin, "-exec-continue\n");
 //	printf("input: -exec-continue\n");
 	return 0;
 }
 
-int gdb_stepNext()
-{
+int gdb_stepNext() {
 	fprintf(gdb_stdin,"-exec-next\n");
 	gdb_waitforEvent(GDB_STEP);
 	return 0;
 }
 
-int gdb_step()
-{
+int gdb_step() {
 	fprintf(gdb_stdin,"-exec-step\n");
 	gdb_waitforEvent(GDB_STEP);
 	return 0;
 }
 
 
-int gdb_stepFinish()
-{
+int gdb_stepFinish() {
 	fprintf(gdb_stdin,"-exec-finish\n");
 	gdb_waitforEvent(GDB_FINISH);
 	return 0;
 }
 
-int gdb_tcl_continue(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
-{
-        Tcl_Obj *objPtr;
+int gdb_tcl_continue(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+	Tcl_Obj *objPtr;
 
-        if(objc!=1) { Tcl_WrongNumArgs(interp, 1, objv, "value"); return TCL_ERROR; }
+	if (objc!=1) {
+		Tcl_WrongNumArgs(interp, 1, objv, "value");
+		return TCL_ERROR;
+	}
 
-        //Return breakpoint number as result
-        objPtr = Tcl_GetObjResult(interp);
+	//Return breakpoint number as result
+	objPtr = Tcl_GetObjResult(interp);
 
-        Tcl_SetIntObj(objPtr, gdb_continue());
+	Tcl_SetIntObj(objPtr, gdb_continue());
 
-        return TCL_OK;
+	return TCL_OK;
 }
 
-int gdb_getresponse()
-{
+int gdb_getresponse() {
 	int event, exitflag;
 	exitflag = 0;
 
-	while(!exitflag)
-	{
+	while (!exitflag) {
 		event = gdb_next_event();
-		if(strstr(gdb_lastoutput(), "^done") == gdb_lastoutput()) 
+		if (strstr(gdb_lastoutput(), "^done") == gdb_lastoutput())
 			exitflag = GDB_DONE;
-		else if (strstr(gdb_lastoutput(), "^error") == gdb_lastoutput()) 
+		else if (strstr(gdb_lastoutput(), "^error") == gdb_lastoutput())
 			exitflag = GDB_ERROR;
 	}
 
 	return exitflag;
 }
 
-void gdb_waitforprompt()
-{
+void gdb_waitforprompt() {
 	int event, exitflag;
 	exitflag = 0;
 
-	while(!exitflag)
-	{
+	while (!exitflag) {
 		event = gdb_next_event();
-		if(strstr(gdb_lastoutput(), "(gdb)") == gdb_lastoutput())	
+		if (strstr(gdb_lastoutput(), "(gdb)") == gdb_lastoutput())
 			exitflag = 1;
-	}	
+	}
 }
 
-void gdb_waitforEvent(int eventtype)
-{
-	 int event;
+void gdb_waitforEvent(int eventtype) {
+	int event;
 
-        while(1)
-        {
-                event = gdb_next_event();
-		if(event == eventtype)
+	while (1) {
+		event = gdb_next_event();
+		if (event == eventtype)
 			break;
-        }
+	}
 }
 
-int gdb_next_event()
-{
+int gdb_next_event() {
 	char *temp;
 
-/*
-#define GDB_STDERR 1
-#define GDB_GDBMSG 2
-#define GDB_BRKPNT 3
-#define GDB_PRGEXT 4
-#define GDB_STDOUT 5
-#define GDB_SIGSEG 6
-#define GDB_WPT 7
-#define GDB_WPS 8
-*/
+	/*
+	#define GDB_STDERR 1
+	#define GDB_GDBMSG 2
+	#define GDB_BRKPNT 3
+	#define GDB_PRGEXT 4
+	#define GDB_STDOUT 5
+	#define GDB_SIGSEG 6
+	#define GDB_WPT 7
+	#define GDB_WPS 8
+	*/
 
 	fd_set set;
 
@@ -273,60 +256,55 @@ int gdb_next_event()
 	int ret;
 	ret = select( FD_SETSIZE, &set, NULL, NULL, NULL );
 
-	if(ret < 0) return -1;
+	if (ret < 0) return -1;
 
-	if(FD_ISSET(gdb_p_stderr[0], &set))
-	{
+	if (FD_ISSET(gdb_p_stderr[0], &set)) {
 		getline(&line, &linesize, gdb_stderr);
 //		printf("stderr: %s", line);
 		return GDB_STDERR;
 	}
-	if(FD_ISSET(gdb_p_stdout[0], &set)) 
-	{
+	if (FD_ISSET(gdb_p_stdout[0], &set)) {
 		getline(&line, &linesize, gdb_stdout);
 		//printf("stdout: %s", line);
 		//fflush(stdout);
 		// Parse & find type of message
 
 		//MOST OF THIS CODE SHOULD BE MERGED WITH OPD LOOP!
-		if(line[0] == '~') return GDB_GDBMSG;
+		if (line[0] == '~') return GDB_GDBMSG;
 		// *stopped,reason="breakpoint-hit",bkptno="1",thread-id="1",frame={addr="0x000000000040079f",func="mksegfault2",args=[{name="value",value="16"}],file="mpi_target.c",line="13"}
 		temp = strstr(line, "*stopped");
-		if(temp) {
-			if(strstr(line, "breakpoint-hit")) return GDB_BRKPNT;
-			if(strstr(line, "watchpoint-trigger")) return GDB_WPT;
-			if(strstr(line, "watchpoint-scope")) return GDB_WPS;
-			if(strstr(line, "SIGSEGV")) return GDB_SIGSEG;
-			if(strstr(line, "SIGBUS")) return GDB_SIGSEG;
-			if(strstr(line, "end-stepping-range")) return GDB_STEP;
-			if(strstr(line, "function-finished")) return GDB_FINISH;
-			if(strstr(line, "SIGINT")) return GDB_SIGINT;
+		if (temp) {
+			if (strstr(line, "breakpoint-hit")) return GDB_BRKPNT;
+			if (strstr(line, "watchpoint-trigger")) return GDB_WPT;
+			if (strstr(line, "watchpoint-scope")) return GDB_WPS;
+			if (strstr(line, "SIGSEGV")) return GDB_SIGSEG;
+			if (strstr(line, "SIGBUS")) return GDB_SIGSEG;
+			if (strstr(line, "end-stepping-range")) return GDB_STEP;
+			if (strstr(line, "function-finished")) return GDB_FINISH;
+			if (strstr(line, "SIGINT")) return GDB_SIGINT;
 
-			return GDB_PRGEXT;	
+			return GDB_PRGEXT;
 		}
-		if(strstr(line, "^running")) return GDB_RUNNING;
-		if(strstr(line, "(gdb)")) return GDB_PROMPT;
+		if (strstr(line, "^running")) return GDB_RUNNING;
+		if (strstr(line, "(gdb)")) return GDB_PROMPT;
 		return GDB_STDOUT;
 	}
 	return -1;
 }
 
-char *gdb_lastoutput()
-{
+char *gdb_lastoutput() {
 	return line;
 }
 
-int gdb_tcl_lastoutput(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
-{
-        Tcl_Obj *objPtr;
+int gdb_tcl_lastoutput(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+	Tcl_Obj *objPtr;
 	objPtr = Tcl_GetObjResult(interp);
 	Tcl_SetStringObj(objPtr, line, strlen(line));
 
-        return TCL_OK;
+	return TCL_OK;
 }
 
-char *gdb_dispatchBreakpoint()
-{
+char *gdb_dispatchBreakpoint() {
 	char buffer[256];
 	int i;
 	Breakpoint *b;
@@ -334,12 +312,12 @@ char *gdb_dispatchBreakpoint()
 
 	i = 0;
 
-	memset(buffer, '\0', sizeof(buffer));	
+	memset(buffer, '\0', sizeof(buffer));
 
 	location = strstr(gdb_lastoutput(), "bkptno=");
 	location += strlen("bkptno=") + 1;
 
-	while(*location != '\"') buffer[i++] = *location++;
+	while (*location != '\"') buffer[i++] = *location++;
 
 	i = atoi(buffer) - 1;
 
@@ -348,16 +326,18 @@ char *gdb_dispatchBreakpoint()
 	return b->tclfunction;
 }
 
-int gdb_tcl_setbreakpoint(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
-{
+int gdb_tcl_setbreakpoint(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
 	char *bp;
 	char *func;
 	int strlenbp,strlenmsg;
 	Tcl_Obj *objPtr;
 	Breakpoint *b;
 
-	if(objc!=3) { Tcl_WrongNumArgs(interp, 1, objv, "value"); return TCL_ERROR; }
-	
+	if (objc!=3) {
+		Tcl_WrongNumArgs(interp, 1, objv, "value");
+		return TCL_ERROR;
+	}
+
 	//Get string for breakpoint
 	bp = Tcl_GetStringFromObj(objv[1], &strlenbp);
 	//Save whom to call when we break
@@ -367,13 +347,13 @@ int gdb_tcl_setbreakpoint(ClientData clientData, Tcl_Interp *interp, int objc, T
 	b = (Breakpoint*) malloc(sizeof(Breakpoint));
 	b->breakpoint = (char*) malloc((strlen(bp)+1)*sizeof(char));
 	b->tclfunction = (char*) malloc((strlen(func)+1)*sizeof(char));
-	
+
 	strcpy(b->breakpoint,bp);
-	strcpy(b->tclfunction,func);	
+	strcpy(b->tclfunction,func);
 
 	b->bp_type = type_breakpoint;
 
-	
+
 	vector_addItem(breakpoints, b);
 
 	//Set breakpoint /w GDB
@@ -391,8 +371,7 @@ int gdb_tcl_setbreakpoint(ClientData clientData, Tcl_Interp *interp, int objc, T
 	return TCL_OK;
 }
 
-char *gdb_dispatchWatchpointTrigger()
-{
+char *gdb_dispatchWatchpointTrigger() {
 	char buffer[256];
 	int i;
 	Breakpoint *b;
@@ -400,13 +379,13 @@ char *gdb_dispatchWatchpointTrigger()
 
 	i = 0;
 
-	memset(buffer, '\0', sizeof(buffer));	
+	memset(buffer, '\0', sizeof(buffer));
 
 	location = strstr(gdb_lastoutput(), "wpt={number=");
 	location += strlen("wpt={number=") + 1;
 //	location += 13;
 
-	while(*location != '\"') buffer[i++] = *location++;
+	while (*location != '\"') buffer[i++] = *location++;
 
 	i = atoi(buffer) - 1;
 
@@ -415,8 +394,7 @@ char *gdb_dispatchWatchpointTrigger()
 	return b->tclfunction;
 }
 
-char *gdb_dispatchWatchpointScope()
-{
+char *gdb_dispatchWatchpointScope() {
 	char buffer[256];
 	int i;
 	Breakpoint *b;
@@ -424,12 +402,12 @@ char *gdb_dispatchWatchpointScope()
 
 	i = 0;
 
-	memset(buffer, '\0', sizeof(buffer));	
+	memset(buffer, '\0', sizeof(buffer));
 
 	location = strstr(gdb_lastoutput(), "wpnum=");
 	location += strlen("wpnum=") + 1;
 
-	while(*location != '\"') buffer[i++] = *location++;
+	while (*location != '\"') buffer[i++] = *location++;
 
 	i = atoi(buffer) - 1;
 
@@ -438,8 +416,7 @@ char *gdb_dispatchWatchpointScope()
 	return b->tclfunction;
 }
 
-int gdb_tcl_setwatchpoint(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
-{
+int gdb_tcl_setwatchpoint(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
 	char *watchpoint_type;
 	char *watchpoint_var;
 	char *watchpoint_function;
@@ -447,7 +424,10 @@ int gdb_tcl_setwatchpoint(ClientData clientData, Tcl_Interp *interp, int objc, T
 	Tcl_Obj *objPtr;
 	Breakpoint *b;
 
-	if(objc!=4) { Tcl_WrongNumArgs(interp, 1, objv, "value"); return TCL_ERROR; }
+	if (objc!=4) {
+		Tcl_WrongNumArgs(interp, 1, objv, "value");
+		return TCL_ERROR;
+	}
 
 	//Get string for watchpoint type
 	watchpoint_type = Tcl_GetStringFromObj(objv[1], &strlen_type);
@@ -465,23 +445,21 @@ int gdb_tcl_setwatchpoint(ClientData clientData, Tcl_Interp *interp, int objc, T
 	strcpy(b->breakpoint , watchpoint_var);
 	strcpy(b->tclfunction , watchpoint_function);
 
-	if(watchpoint_type[0] == 'a') {
+	if (watchpoint_type[0] == 'a') {
 		b->bp_type= type_access_watchpoint;
 		fprintf(gdb_stdin, "-break-watch -a %s\n", watchpoint_var);
 //	printf("input: -break-watch -a %s\n", watchpoint_var);
-	}
-	else if(watchpoint_type[0] == 'r') {
+	} else if (watchpoint_type[0] == 'r') {
 		b->bp_type = type_read_watchpoint;
 		fprintf(gdb_stdin, "-break-watch -r %s\n", watchpoint_var);
 //	printf("input: -break-watch -r %s\n", watchpoint_var);
-	}
-	else {
+	} else {
 		b->bp_type = type_write_watchpoint;
 		fprintf(gdb_stdin, "-break-watch %s\n", watchpoint_var);
 //	printf("input: -break-watch %s\n", watchpoint_var);
 	}
 	fflush(stdout);
-	
+
 	//Find result
 	if (gdb_getresponse() == GDB_DONE) {
 		vector_addItem(breakpoints, b);
@@ -490,18 +468,20 @@ int gdb_tcl_setwatchpoint(ClientData clientData, Tcl_Interp *interp, int objc, T
 	//Return breakpoint number as result
 	objPtr = Tcl_GetObjResult(interp);
 	Tcl_SetIntObj(objPtr, 1);
-	
-   return TCL_OK;
+
+	return TCL_OK;
 }
 
-int gdb_tcl_evalExpr(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
-{
+int gdb_tcl_evalExpr(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
 	char *expr;
 	int strlenbp;
 	Tcl_Obj *objPtr;
 	char *location, *temp;
 
-	if(objc!=2) { Tcl_WrongNumArgs(interp, 1, objv, "value"); return TCL_ERROR; }
+	if (objc!=2) {
+		Tcl_WrongNumArgs(interp, 1, objv, "value");
+		return TCL_ERROR;
+	}
 
 	expr = Tcl_GetStringFromObj(objv[1], &strlenbp);
 
@@ -518,14 +498,14 @@ int gdb_tcl_evalExpr(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Ob
 	location = strstr(gdb_lastoutput(), "value=");
 
 
-	if(location == NULL) {
-		Tcl_SetStringObj(objPtr, "Error", strlen("Error"));	
+	if (location == NULL) {
+		Tcl_SetStringObj(objPtr, "Error", strlen("Error"));
 	} else {
 		location += strlen("value=") + 1;
 		temp = location; //move to first 'value character'
 
 		//find last " character
-		while(*location != '\"')  location++;
+		while (*location != '\"')  location++;
 
 		Tcl_SetStringObj(objPtr, temp, (location-temp)/sizeof(char));
 	}
@@ -533,11 +513,13 @@ int gdb_tcl_evalExpr(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Ob
 	return TCL_OK;
 }
 
-int gdb_tcl_listLocals(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
-{
+int gdb_tcl_listLocals(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
 	Tcl_Obj *objPtr;
 
-	if(objc!=1) { Tcl_WrongNumArgs(interp, 1, objv, "value"); return TCL_ERROR; }
+	if (objc!=1) {
+		Tcl_WrongNumArgs(interp, 1, objv, "value");
+		return TCL_ERROR;
+	}
 
 	fprintf(gdb_stdin, "-stack-list-locals --simple-values\n");
 
@@ -552,159 +534,174 @@ int gdb_tcl_listLocals(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_
 	return TCL_OK;
 }
 
-int gdb_tcl_getStackFrames(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
-{
+int gdb_tcl_getStackFrames(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
 	Tcl_Obj *objPtr;
 
-	if(objc!=1) { Tcl_WrongNumArgs(interp, 1, objv, "value"); return TCL_ERROR; }
+	if (objc!=1) {
+		Tcl_WrongNumArgs(interp, 1, objv, "value");
+		return TCL_ERROR;
+	}
 
 	// fprintf(gdb_stdin, "-stack-list-frames --all-values\n");
 	fprintf(gdb_stdin, "-stack-list-frames\n");
 
-        //Find result
-        gdb_getresponse();
+	//Find result
+	gdb_getresponse();
 
-        //Return breakpoint number as result
-        objPtr = Tcl_GetObjResult(interp);
+	//Return breakpoint number as result
+	objPtr = Tcl_GetObjResult(interp);
 
-        Tcl_SetIntObj(objPtr, 1);
+	Tcl_SetIntObj(objPtr, 1);
 
-        return TCL_OK;
+	return TCL_OK;
 }
 
-int gdb_tcl_getStackArgs(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
-{
+int gdb_tcl_getStackArgs(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
 	Tcl_Obj *objPtr;
 
-	if(objc!=1) { Tcl_WrongNumArgs(interp, 1, objv, "value"); return TCL_ERROR; }
+	if (objc!=1) {
+		Tcl_WrongNumArgs(interp, 1, objv, "value");
+		return TCL_ERROR;
+	}
 
 	fprintf(gdb_stdin, "-stack-list-arguments 1\n");
 
-        //Find result
-        gdb_getresponse();
+	//Find result
+	gdb_getresponse();
 
-        //Return breakpoint number as result
-        objPtr = Tcl_GetObjResult(interp);
+	//Return breakpoint number as result
+	objPtr = Tcl_GetObjResult(interp);
 
-        Tcl_SetIntObj(objPtr, 1);
+	Tcl_SetIntObj(objPtr, 1);
 
-        return TCL_OK;
+	return TCL_OK;
 }
 
-int gdb_tcl_stepNext(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
-{
-        Tcl_Obj *objPtr;
+int gdb_tcl_stepNext(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+	Tcl_Obj *objPtr;
 
-        if(objc!=1) { Tcl_WrongNumArgs(interp, 1, objv, "value"); return TCL_ERROR; }
+	if (objc!=1) {
+		Tcl_WrongNumArgs(interp, 1, objv, "value");
+		return TCL_ERROR;
+	}
 
 	gdb_stepNext();
 
-        //Return breakpoint number as result
-        objPtr = Tcl_GetObjResult(interp);
+	//Return breakpoint number as result
+	objPtr = Tcl_GetObjResult(interp);
 
-        Tcl_SetIntObj(objPtr, 1);
+	Tcl_SetIntObj(objPtr, 1);
 
-        return TCL_OK;
+	return TCL_OK;
 }
 
-int gdb_tcl_step(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
-{
-        Tcl_Obj *objPtr;
+int gdb_tcl_step(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+	Tcl_Obj *objPtr;
 
-        if(objc!=1) { Tcl_WrongNumArgs(interp, 1, objv, "value"); return TCL_ERROR; }
+	if (objc!=1) {
+		Tcl_WrongNumArgs(interp, 1, objv, "value");
+		return TCL_ERROR;
+	}
 
 	gdb_step();
 
-        //Return breakpoint number as result
-        objPtr = Tcl_GetObjResult(interp);
+	//Return breakpoint number as result
+	objPtr = Tcl_GetObjResult(interp);
 
-        Tcl_SetIntObj(objPtr, 1);
+	Tcl_SetIntObj(objPtr, 1);
 
-        return TCL_OK;
+	return TCL_OK;
 }
 
 
-int gdb_tcl_stepFinish(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
-{
-        Tcl_Obj *objPtr;
+int gdb_tcl_stepFinish(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+	Tcl_Obj *objPtr;
 
-        if(objc!=1) { Tcl_WrongNumArgs(interp, 1, objv, "value"); return TCL_ERROR; }
+	if (objc!=1) {
+		Tcl_WrongNumArgs(interp, 1, objv, "value");
+		return TCL_ERROR;
+	}
 
 	gdb_stepFinish();
 
-        //Return breakpoint number as result
-        objPtr = Tcl_GetObjResult(interp);
+	//Return breakpoint number as result
+	objPtr = Tcl_GetObjResult(interp);
 
-        Tcl_SetIntObj(objPtr, 1);
+	Tcl_SetIntObj(objPtr, 1);
 
-        return TCL_OK;
+	return TCL_OK;
 }
 
-int gdb_tcl_set_pid(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
-{
-        Tcl_Obj *objPtr;
+int gdb_tcl_set_pid(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+	Tcl_Obj *objPtr;
 
-        if(objc!=1) { Tcl_WrongNumArgs(interp, 1, objv, "value"); return TCL_ERROR; }
+	if (objc!=1) {
+		Tcl_WrongNumArgs(interp, 1, objv, "value");
+		return TCL_ERROR;
+	}
 
 	gdb_set_pid();
 
-        //Return breakpoint number as result
-        objPtr = Tcl_GetObjResult(interp);
+	//Return breakpoint number as result
+	objPtr = Tcl_GetObjResult(interp);
 
-        Tcl_SetIntObj(objPtr, 1);
+	Tcl_SetIntObj(objPtr, 1);
 
-        return TCL_OK;
+	return TCL_OK;
 }
 
-int gdb_tcl_set(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
-{
-        Tcl_Obj *objPtr;
+int gdb_tcl_set(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+	Tcl_Obj *objPtr;
 	char *var;
 	char *val;
 	int size;
 
-        if(objc!=3) { Tcl_WrongNumArgs(interp, 1, objv, "value"); return TCL_ERROR; }
+	if (objc!=3) {
+		Tcl_WrongNumArgs(interp, 1, objv, "value");
+		return TCL_ERROR;
+	}
 
 	var = Tcl_GetStringFromObj(objv[1], &size);
 	val =  Tcl_GetStringFromObj(objv[2], &size);
 
 	gdb_set(var,val);
-	
 
 
-        //Return breakpoint number as result
-        objPtr = Tcl_GetObjResult(interp);
 
-        Tcl_SetIntObj(objPtr, 1);
+	//Return breakpoint number as result
+	objPtr = Tcl_GetObjResult(interp);
 
-        return TCL_OK;
+	Tcl_SetIntObj(objPtr, 1);
+
+	return TCL_OK;
 }
 
 
-int gdb_tcl_call(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
-{
-        Tcl_Obj *objPtr;
+int gdb_tcl_call(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+	Tcl_Obj *objPtr;
 	int strlenf;
 	char *func;
 	char buffer[256];
 
 	memset(buffer, '\0', sizeof(buffer));
 
-        if(objc!=2) { Tcl_WrongNumArgs(interp, 1, objv, "value"); return TCL_ERROR; }
+	if (objc!=2) {
+		Tcl_WrongNumArgs(interp, 1, objv, "value");
+		return TCL_ERROR;
+	}
 
 	func = Tcl_GetStringFromObj(objv[1], &strlenf);
 
 	gdb_call(func, buffer);
 
-        objPtr = Tcl_GetObjResult(interp);
+	objPtr = Tcl_GetObjResult(interp);
 
 	Tcl_SetStringObj(objPtr, buffer, strlen(buffer));
 
-        return TCL_OK;
+	return TCL_OK;
 }
 
-int gdb_exit()
-{
+int gdb_exit() {
 	fprintf(gdb_stdin,"-gdb-exit\n");
 //	printf("input: -gdb-exit\n");
 	return 0;
