@@ -72,7 +72,7 @@ int gdb_setup(char *programname, char* gdb_location)
 		close(gdb_p_stderr[0]);
 		
 		//Exec GDB
-		execl(gdb_location, "gdb", "--interpreter=mi", programname, NULL);
+		execl(gdb_location, "gdb", "--quiet", "--interpreter=mi", programname, NULL);
 	}
 
 	//setup our pipes

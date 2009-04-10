@@ -1,18 +1,18 @@
 /* This file is part of GDBase.
- * 
+ *
  * GDBase is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * GDBase is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with GDBase.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Copyright 2009 Anthony DiGirolamo, Dan Stanzione, Karl Lindekugel
  */
 
@@ -66,9 +66,15 @@ int opd_tcl_getSize(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj
 }
 
 void printhelp() {
-	printf("Usage: gdbase [OPTIONS]... [EXEC] [ARGS]... \n");
+	printf("Usage: gdbase [OPTIONS]... -e \"EXEC ARGS\"\n");
 	printf("\n");
 	printf("Options: \n");
+	printf("  -e  --exec        Target application\n");
+	printf("  -a  --args        Target application arguments\n");
+	printf("  Examples:\n");
+	printf("    gdbase -e MyApp\n");
+	printf("    gdbase -e MyApp -a \"arg1 arg2\"\n");
+	printf("\n");
 	printf("  -h, --help        Display this message\n");
 	printf("  -c, --config      Use a custom config file\n");
 	printf("\n");
@@ -92,19 +98,6 @@ void printhelp() {
 	printf("  -n, --nprocs_var  Environment variable for MPI num procs\n");
 	printf("                     Default for MVAPICH: MPIRUN_NPROCS\n");
 	printf("                     Default for OpenMPI: OMPI_MCA_ns_nds_num_procs\n");
-	// printf("\n");
-	// printf("Examples: \n");
-	// printf("  Execute gdbase on myapp with only crash reporting\n");
-	// printf("  gdbase ./myapp arg1 arg2\n");
-	// printf("\n");
-	// printf("  Execute gdbase using a debugging specification file\n");
-	// printf("  gdbase -d user.spec ./myapp arg1 arg2\n");
-	// printf("\n");
-	// printf("  Execute gdbase using a custom debugging script\n");
-	// printf("  gdbase -s user.script ./myapp arg1 arg2\n");
-	// printf("\n");
-	// printf("  Execute gdbase using both a specification and script file\n");
-	// printf("  gdbase -d user.spec -s user.script ./myapp arg1 arg2\n");
 }
 
 void catch_alarm (int sig) {
@@ -118,7 +111,7 @@ int main(int argc, char* argv[])
 {
 	char *config_file = NULL;
 	int using_mpi = 1; // assume we use mpi
-	
+
 	// Environment variable names
 	char *jobid = NULL;
 	char *jobid_var = NULL;
@@ -131,11 +124,11 @@ int main(int argc, char* argv[])
 	char *target = NULL;
 	char *arguments = NULL;
 	char target_basename[512];
-	
+
 	// Script files
 	char *spec_file = NULL;
 	char *script_file = NULL;
-	
+
 	// Directories
 	char *prefix = NULL;
 	char *opd_dir = NULL;
@@ -159,6 +152,8 @@ int main(int argc, char* argv[])
 
 	while (c != -1) {
 		static struct option long_options[] = {
+			{"exec",		required_argument, 0, 'e'},
+			{"args",		required_argument, 0, 'a'},
 			{"help",		no_argument, 0, 'h'},
 			{"config",		required_argument, 0, 'c'},
 			{"debug-spec",	required_argument, 0, 'd'},
@@ -174,18 +169,15 @@ int main(int argc, char* argv[])
 			{0, 0, 0, 0}
 		};
 		int option_index = 0;
-		c = getopt_long (argc, argv, "hc:d:s:t:p:g:T:j:J:r:n:", long_options, &option_index);
+		c = getopt_long (argc, argv, "e:a:hc:d:s:t:p:g:T:j:J:r:n:", long_options, &option_index);
 		if (c == -1) break;
 
 		switch (c) {
-			case 0:
-				// If this option set a flag, do nothing else now.
-				if (long_options[option_index].flag != 0)
-					break;
-				printf ("option %s", long_options[option_index].name);
-				if (optarg)
-					printf (" with arg %s", optarg);
-				printf ("\n");
+			case 'e':
+				target = optarg;
+				break;
+			case 'a':
+				arguments = optarg;
 				break;
 			case 'h':
 				printhelp();
@@ -213,7 +205,7 @@ int main(int argc, char* argv[])
 				temp_dir = optarg;
 				break;
 			case 'j':
-				jobid = optarg;	
+				jobid = optarg;
 				break;
 			case 'J':
 				jobid_var = optarg;
@@ -228,55 +220,32 @@ int main(int argc, char* argv[])
 				abort();
 		}
 	}
-	
-	// Handle remaining command line arguments (not options).
 
-	if (optind < argc) {
-		target_index = optind;
-
-		// Get target app
-		target = argv[target_index];
-		if (!exists(target)) {
-			fprintf(stderr, "%s: Cannot find target application: %s\n", 
-				PROGRAM_NAME, target);
-			exit(EXIT_FAILURE);
-		}
-		// Get the file name of the target app
-		temp = NULL;
-		temp = strchr(target, '/');
-		if (temp) {
-			// temp = strchr(target, '\0');
-			// while(*temp != '/') *temp--; 
-			// *temp++;
-			temp = basename(target);
-			strcpy(target_basename, temp);
-		}
-		else
-			strcpy(target_basename, target);
-
-		// Get target app's arguments (if any)
-		if (target_index+1 < argc) {
-			arguments = (char *) malloc(strlen(argv[target_index+1]) * sizeof(char));
-			strcpy(arguments, argv[target_index+1]);
-			for(i=target_index+2; i<argc; i++) {
-				arguments = realloc(arguments, (strlen(arguments) + strlen(argv[i]) + 2) * sizeof(char));
-				strcat(arguments, " ");
-				strcat(arguments, argv[i]);
-			}
-		}
-		//else {
-		//	arguments = (char *) malloc(sizeof(char));
-		//	arguments[0] = '\0';
-		//}
-
-	}
-	else {
+	// Did we include a target app?
+	if (!target) {
 		fprintf(stderr, "%s: Missing target application. Try -h for help.\n",
 			PROGRAM_NAME);
 		exit(EXIT_FAILURE);
 	}
 
-	// Get environment variables		
+	// Does the target app exist?
+	if (!exists(target)) {
+		fprintf(stderr, "%s: Cannot find target application: %s\n",
+			PROGRAM_NAME, target);
+		exit(EXIT_FAILURE);
+	}
+
+	// Get the file name of the target app
+	temp = NULL;
+	temp = strchr(target, '/');
+	if (temp) {
+		temp = basename(target);
+		strcpy(target_basename, temp);
+	}
+	else
+		strcpy(target_basename, target);
+
+	// Get environment variables
 
 	// MPI Vars
 	if (rank_var != NULL)
@@ -305,12 +274,12 @@ int main(int argc, char* argv[])
 		temp = getenv("OMPI_MCA_ns_nds_num_procs");
 		size = atoi(temp);
 	}
-	
+
 	if (!rank && !size) {
 		using_mpi = 0;
 		rank = 0;
 		size = 1;
-		printf("%s: MPI not found, running without.\n", 
+		printf("%s: MPI not found, running without.\n",
 			PROGRAM_NAME);
 	}
 
@@ -324,7 +293,7 @@ int main(int argc, char* argv[])
 		else // check for PBS
 		if(getenv("PBS_JOBID")) {
 			jobid = getenv("PBS_JOBID");
-		} 
+		}
 		else // don't know
 			jobid = "UNKNOWNID";
 	}
@@ -332,7 +301,7 @@ int main(int argc, char* argv[])
 	if (opd_dir == NULL)
 		opd_dir = "/usr/local/bin";
 	if(getenv("GDBASE_PREFIX"))
-		opd_dir = getenv("GDBASE_PREFIX");  
+		opd_dir = getenv("GDBASE_PREFIX");
 	sprintf(strbuf, "%s/bin/opd", opd_dir);
 	if(!exists(strbuf))
 	{
@@ -350,7 +319,7 @@ int main(int argc, char* argv[])
 	if(!exists(gdb_location))
 	{
 		if (rank==0)
-		fprintf(stderr, "%s: Cannot find gdb executable.\n", 
+		fprintf(stderr, "%s: Cannot find gdb executable.\n",
 			PROGRAM_NAME);
 		exit(EXIT_FAILURE);
 	}
@@ -359,7 +328,7 @@ int main(int argc, char* argv[])
 		timeout = atoi(timeout_string);
 		if (timeout < 1 ) {
 			if (rank==0)
-			fprintf(stderr, "%s: Invalid timeout value: %s\n", 
+			fprintf(stderr, "%s: Invalid timeout value: %s\n",
 				PROGRAM_NAME, timeout_string);
 			exit(EXIT_FAILURE);
 		}
@@ -375,7 +344,7 @@ int main(int argc, char* argv[])
 		printf("== GDBase v0.1\n");
 		printf("== Prefix:              %s\n", opd_dir);
 		printf("== Using gdb:           %s\n", gdb_location);
-		if (config_file) 
+		if (config_file)
 		printf("== Using config file:   %s\n", config_file);
 		printf("==\n");
 		printf("== Working Directory:   %s\n", working_dir);
@@ -397,18 +366,21 @@ int main(int argc, char* argv[])
 	// Name and open the new sqlite file
 	sprintf(strbuf, "%s-%s.%d", "gdblog", target_basename, rank);
 
-	if(temp_dir != NULL) 
+	if(temp_dir != NULL)
 		sprintf(strbuf, "%s/%s-%s.%d", temp_dir, "gdblog", target_basename, rank);
 
 	if (exists(strbuf))
 		remove(strbuf);
 	if (db_open(strbuf)) {
-		fprintf(stderr, "%s: Temporary log file could not be opened: %s\n", 
+		fprintf(stderr, "%s: Temporary log file could not be opened: %s\n",
 			PROGRAM_NAME, strbuf);
 		exit(EXIT_FAILURE);
 	}
 
-	sprintf(strbuf, "Executing: %s %s\n", target, arguments);
+	if (arguments)
+		sprintf(strbuf, "Executing: %s %s\n", target, arguments);
+	else
+		sprintf(strbuf, "Executing: %s\n", target);
 	db_logMessage("opd.message", strbuf);
 
 	// Startup Interpreter
@@ -453,11 +425,11 @@ int main(int argc, char* argv[])
 
 	//Startup GDB in proper mode
 	gdb_setup(target, gdb_location);
-	if(arguments) 
+	if(arguments)
 		gdb_set_arguments(arguments);
 
 	if(script_file)
-	{	
+	{
 		// db_logMessage("opd.message", strcat("Processing user script: ",strbuf));
 		if (Tcl_EvalFile(interp, script_file) != TCL_OK) {
 			errors = Tcl_GetStdChannel(TCL_STDERR);
@@ -470,7 +442,7 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 	}
-	
+
 	Tcl_Eval(interp, "opd_setup");
 
 	if(spec_file) {
@@ -498,11 +470,11 @@ int main(int argc, char* argv[])
 	int event;
 
 	exitflag = 0;
-	
+
 	do {
 		alarm(timeout);
 		event = gdb_next_event();
-		/* 
+		/*
 			#define GDB_STDERR 1
 			#define GDB_GDBMSG 2
 			#define GDB_BRKPNT 3
@@ -517,7 +489,7 @@ int main(int argc, char* argv[])
 
 		switch(event) {
 			case GDB_STDERR:
-				Tcl_Eval(interp, "opd_dispatchStdErr");	
+				Tcl_Eval(interp, "opd_dispatchStdErr");
 				break;
 			case GDB_GDBMSG:
 				Tcl_Eval(interp, "opd_dispatchGDB");
@@ -544,9 +516,9 @@ int main(int argc, char* argv[])
 
 			//DO NOTHING
 			case GDB_RUNNING:
-			case GDB_PROMPT: 
+			case GDB_PROMPT:
 			case 0:
-				break; 
+				break;
 			default:
 				Tcl_Eval(interp, "opd_dispatchOther");
 				break;
