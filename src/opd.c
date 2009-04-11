@@ -463,21 +463,32 @@ int main(int argc, char* argv[]) {
 
 	exitflag = 0;
 
+	// This is only handling the initial setup?
 	do {
 		alarm(timeout);
+		printf("OPDDO next_event\n");
+		fflush(stdout);
+		
 		event = gdb_next_event();
-		/*
-			#define GDB_STDERR 1
-			#define GDB_GDBMSG 2
-			#define GDB_BRKPNT 3
-			#define GDB_PRGEXT 4
-			#define GDB_STDOUT 5
-			#define GDB_SIGSEG 6
-			#define GDB_WPT 7
-			#define GDB_WPS 8
-		*/
 
-		//printf("%d, %d\n", rank, event);
+		printf("OPD: Event %d\n", event);
+		fflush(stdout);
+
+		/*
+		#define GDB_STDERR  1
+		#define GDB_GDBMSG  2
+		#define GDB_BRKPNT  3
+		#define GDB_PRGEXT  4
+		#define GDB_STDOUT  5
+		#define GDB_SIGSEG  6
+		#define GDB_WPT     7
+		#define GDB_WPS     8
+		#define GDB_PROMPT  9
+		#define GDB_RUNNING 10
+		#define GDB_STEP    11
+		#define GDB_FINISH  12
+		#define GDB_SIGINT  13
+		*/
 
 		switch (event) {
 		case GDB_STDERR:
@@ -502,11 +513,16 @@ int main(int argc, char* argv[]) {
 			Tcl_Eval(interp, "opd_dispatchStdOut");
 			break;
 		case GDB_PRGEXT:
+			printf("OPD GOT EXIT\n");
+			fflush(stdout);
 			Tcl_Eval(interp, "opd_dispatchPrgExt");
 			exitflag = 2;
 			break;
 
 			//DO NOTHING
+		case GDB_STEP:
+			printf("OPD DO got GDB_STEP\n");
+			break;
 		case GDB_RUNNING:
 		case GDB_PROMPT:
 		case 0:
