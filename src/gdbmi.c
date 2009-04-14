@@ -39,6 +39,7 @@ int linesize;
 pid_t gdb_pid,child_pid;
 
 Vector *breakpoints;
+char *step_function;
 
 typedef	struct s_bp {
 	char *breakpoint;
@@ -96,7 +97,7 @@ int gdb_setup(char *programname, char* gdb_location) {
 }
 
 void gdb_interrupt() {
-	printf("Killing %d\n", child_pid);
+	//printf("Killing %d\n", child_pid);
 	kill(child_pid, SIGINT);
 
 	gdb_waitforEvent(GDB_SIGINT);
@@ -109,9 +110,9 @@ void gdb_call(char* func, char* buffer) {
 
 
 	fprintf(gdb_stdin, "-interpreter-exec console \"call %s\"\n", func);
-	printf("INPUT: -interpreter-exec console \"call %s\"\n", func);
+	//printf("INPUT: -interpreter-exec console \"call %s\"\n", func);
 	do {
-		printf("CALL nextevent\n");
+		//printf("CALL nextevent\n");
 		gdb_next_event();
 	} while (NULL== strstr(gdb_lastoutput(), " = "));
 
@@ -141,27 +142,26 @@ void gdb_set_pid() {
 
 void gdb_set(char *var, char *value) {
 	fprintf(gdb_stdin, "-gdb-set %s = %s \n", var, value);
-	printf("INPUT: -gdb-set %s = %s \n", var, value);
+	//printf("INPUT: -gdb-set %s = %s \n", var, value);
 	gdb_getresponse();
 }
 
-
-//Start application with its arguments "-exec-arguments args "
 int gdb_set_arguments(char *args) {
+	//Start application with its arguments "-exec-arguments args "
 	fprintf(gdb_stdin, "-exec-arguments %s\n", args);
-	printf("INPUT: -exec-arguments %s\n", args);
+	//printf("INPUT: -exec-arguments %s\n", args);
 	return 0;
 }
 
 int gdb_start_run() {
 	fprintf(gdb_stdin, "-exec-run\n");
-	printf("INPUT: -exec-run\n");
+	//printf("INPUT: -exec-run\n");
 	return 0;
 }
 
 int gdb_continue() {
 	fprintf(gdb_stdin, "-exec-continue\n");
-	printf("INPUT: -exec-continue\n");
+	//printf("INPUT: -exec-continue\n");
 	return 0;
 }
 
@@ -187,14 +187,14 @@ int gdb_getresponse() {
 	count = 0;
 
 	while (!exitflag) {
-		printf("GETRESPONSE nextevent\n");
+		//printf("GETRESPONSE nextevent\n");
 		event = gdb_next_event();
 		if (strstr(gdb_lastoutput(), "^done") == gdb_lastoutput()) {
-			printf("GETRESPONSE ^done\n");
+			//printf("GETRESPONSE ^done\n");
 			exitflag = GDB_DONE;
 		}
 		else if (strstr(gdb_lastoutput(), "^error") == gdb_lastoutput()) {
-			printf("GETRESPONSE ^error\n");
+			//printf("GETRESPONSE ^error\n");
 			exitflag = GDB_ERROR;
 		}
 		// else if (strstr(gdb_lastoutput(), "*stopped") == gdb_lastoutput()) {
@@ -211,7 +211,7 @@ void gdb_waitforprompt() {
 	exitflag = 0;
 
 	while (!exitflag) {
-		printf("WAITFORPROMPT nextevent\n");
+		//printf("WAITFORPROMPT nextevent\n");
 		event = gdb_next_event();
 		if (strstr(gdb_lastoutput(), "(gdb)") == gdb_lastoutput())
 			exitflag = 1;
@@ -222,15 +222,15 @@ void gdb_waitforEvent(int eventtype) {
 	int event;
 
 	while (1) {
-		printf("WAITFOREVENT nextevent\n");
+		//printf("WAITFOREVENT nextevent\n");
 		event = gdb_next_event();
-		printf("WAITING %d got %d\n", eventtype, event);
+		//printf("WAITING %d got %d\n", eventtype, event);
 		fflush(stdout);
 		if (event == eventtype)
 			break;
 
 		if (event == GDB_PRGEXT || event == GDB_SIGSEG) {
-			printf("WAITFOREVENT GOT EXIT\n");
+			//printf("WAITFOREVENT GOT EXIT\n");
 			fflush(stdout);
 			break;
 		}
@@ -269,13 +269,13 @@ int gdb_next_event() {
 
 	if (FD_ISSET(gdb_p_stderr[0], &set)) {
 		getline(&line, &linesize, gdb_stderr);
-		printf("   stderr: %s", line);
+		//printf("   stderr: %s", line);
 		fflush(stdout);
 		return GDB_STDERR;
 	}
 	if (FD_ISSET(gdb_p_stdout[0], &set)) {
 		getline(&line, &linesize, gdb_stdout);
-		printf("   stdout: %s", line);
+		//printf("   stdout: %s", line);
 		fflush(stdout);
 
 		// Parse & find type of message
@@ -294,20 +294,20 @@ int gdb_next_event() {
 			if (strstr(line, "end-stepping-range")) return GDB_STEP;
 			if (strstr(line, "function-finished")) return GDB_FINISH;
 			if (strstr(line, "SIGINT")) return GDB_SIGINT;
-			if (strstr(line, "exited-normally")) {
-				printf("NEXTEVENT GOT EXIT\n");
-				fflush(stdout);
-				return GDB_PRGEXT;
-			}
+//			if (strstr(line, "exited-normally")) {
+//				printf("NEXTEVENT GOT EXIT\n");
+//				fflush(stdout);
+//				return GDB_PRGEXT;
+//			}
 
-			printf("NEXTEVENT EXIT\n");
+			//printf("NEXTEVENT EXIT\n");
 			fflush(stdout);
 
 			return GDB_PRGEXT;
 		}
-		
+
 		if (strstr(line, "^running")) return GDB_RUNNING;
-		
+
 		if (strstr(line, "(gdb)")) return GDB_PROMPT;
 
 		temp = strstr(line, "^error");
@@ -316,7 +316,7 @@ int gdb_next_event() {
 		}
 		return GDB_STDOUT;
 	}
-	printf("-1\n");
+	//printf("-1\n");
 
 	return -1;
 }
@@ -387,7 +387,7 @@ int gdb_tcl_setbreakpoint(ClientData clientData, Tcl_Interp *interp, int objc, T
 
 	//Set breakpoint /w GDB
 	fprintf(gdb_stdin, "-break-insert %s\n", bp);
-	printf("INPUT: -break-insert %s\n", bp);
+	//printf("INPUT: -break-insert %s\n", bp);
 
 	//Find result
 	gdb_getresponse();
@@ -477,15 +477,15 @@ int gdb_tcl_setwatchpoint(ClientData clientData, Tcl_Interp *interp, int objc, T
 	if (watchpoint_type[0] == 'a') {
 		b->bp_type= type_access_watchpoint;
 		fprintf(gdb_stdin, "-break-watch -a %s\n", watchpoint_var);
-		printf("INPUT: -break-watch -a %s\n", watchpoint_var);
+		//printf("INPUT: -break-watch -a %s\n", watchpoint_var);
 	} else if (watchpoint_type[0] == 'r') {
 		b->bp_type = type_read_watchpoint;
 		fprintf(gdb_stdin, "-break-watch -r %s\n", watchpoint_var);
-		printf("INPUT: -break-watch -r %s\n", watchpoint_var);
+		//printf("INPUT: -break-watch -r %s\n", watchpoint_var);
 	} else {
 		b->bp_type = type_write_watchpoint;
 		fprintf(gdb_stdin, "-break-watch %s\n", watchpoint_var);
-		printf("INPUT: -break-watch %s\n", watchpoint_var);
+		//printf("INPUT: -break-watch %s\n", watchpoint_var);
 	}
 	fflush(stdout);
 
@@ -515,7 +515,7 @@ int gdb_tcl_evalExpr(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Ob
 	expr = Tcl_GetStringFromObj(objv[1], &strlenbp);
 
 	fprintf(gdb_stdin, "-data-evaluate-expression %s\n", expr);
-	printf("INPUT: -data-evaluate-expression %s\n", expr);
+	//printf("INPUT: -data-evaluate-expression %s\n", expr);
 
 	//Find result
 	gdb_getresponse();
@@ -552,7 +552,7 @@ int gdb_tcl_listLocals(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_
 	}
 
 	fprintf(gdb_stdin, "-stack-list-locals --simple-values\n");
-	printf("INPUT: -stack-list-locals --simple-values\n");
+	//printf("INPUT: -stack-list-locals --simple-values\n");
 
 	//Find result
 	gdb_getresponse();
@@ -575,7 +575,7 @@ int gdb_tcl_getStackFrames(ClientData clientData, Tcl_Interp *interp, int objc, 
 
 	// fprintf(gdb_stdin, "-stack-list-frames --all-values\n");
 	fprintf(gdb_stdin, "-stack-list-frames\n");
-	printf("INPUT: -stack-list-frames\n");
+	//printf("INPUT: -stack-list-frames\n");
 
 	//Find result
 	gdb_getresponse();
@@ -597,7 +597,7 @@ int gdb_tcl_getStackArgs(ClientData clientData, Tcl_Interp *interp, int objc, Tc
 	}
 
 	fprintf(gdb_stdin, "-stack-list-arguments 1\n");
-	printf("INPUT: -stack-list-arguments 1\n");
+	//printf("INPUT: -stack-list-arguments 1\n");
 
 	//Find result
 	gdb_getresponse();
@@ -619,7 +619,7 @@ int gdb_tcl_stepNext(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Ob
 	}
 
 	fprintf(gdb_stdin,"-exec-next\n");
-	printf("INPUT: -exec-next\n");
+	//printf("INPUT: -exec-next\n");
 
 	//Find result
 	//gdb_getresponse();
@@ -633,15 +633,21 @@ int gdb_tcl_stepNext(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Ob
 }
 
 int gdb_tcl_step(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+	char* message;
+	int strlenmsg;
 	Tcl_Obj *objPtr;
 
-	if (objc!=1) {
+	if (objc!=2) {
 		Tcl_WrongNumArgs(interp, 1, objv, "value");
 		return TCL_ERROR;
 	}
 
+	message = Tcl_GetStringFromObj(objv[1], &strlenmsg);
+	step_function = (char*) malloc(strlenmsg * sizeof(char));
+	strcpy(step_function, message);
+
 	fprintf(gdb_stdin,"-exec-step\n");
-	printf("INPUT: -exec-step\n");
+	//printf("INPUT: -exec-step\n");
 
 	//Find result
 	//gdb_getresponse();
@@ -654,7 +660,6 @@ int gdb_tcl_step(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *C
 	return TCL_OK;
 }
 
-
 int gdb_tcl_stepFinish(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
 	Tcl_Obj *objPtr;
 
@@ -664,7 +669,7 @@ int gdb_tcl_stepFinish(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_
 	}
 
 	fprintf(gdb_stdin,"-exec-finish\n");
-	printf("INPUT: -exec-finish\n");
+	//printf("INPUT: -exec-finish\n");
 
 	//Find result
 	//gdb_getresponse();
@@ -675,6 +680,10 @@ int gdb_tcl_stepFinish(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_
 	Tcl_SetIntObj(objPtr, 1);
 
 	return TCL_OK;
+}
+
+char *gdb_dispatchStepFunction() {
+	return step_function;
 }
 
 int gdb_tcl_set_pid(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
@@ -721,7 +730,6 @@ int gdb_tcl_set(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CO
 	return TCL_OK;
 }
 
-
 int gdb_tcl_call(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
 	Tcl_Obj *objPtr;
 	int strlenf;
@@ -748,6 +756,6 @@ int gdb_tcl_call(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *C
 
 int gdb_exit() {
 	fprintf(gdb_stdin,"-gdb-exit\n");
-	printf("INPUT: -gdb-exit\n");
+	//printf("INPUT: -gdb-exit\n");
 	return 0;
 }

@@ -66,7 +66,7 @@ int opd_tcl_getSize(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj
 }
 
 void printhelp() {
-	printf("Usage: gdbase [OPTIONS]... -e \"EXEC ARGS\"\n");
+	printf("Usage: gdbase [OPTIONS]... -e EXEC -a ARGS\n");
 	printf("\n");
 	printf("Options: \n");
 	printf("  -e  --exec        Target application\n");
@@ -140,8 +140,8 @@ int main(int argc, char* argv[]) {
 	int i = 0;
 	int c = 0; // for getopt
 	int target_index = 0;
-	rank = NULL;
-	size = NULL;
+	rank = (int) NULL;
+	size = (int) NULL;
 
 	signal(SIGALRM, catch_alarm);
 
@@ -395,7 +395,7 @@ int main(int argc, char* argv[]) {
 	Tcl_CreateObjCommand(interp, "gdb_continue", gdb_tcl_continue, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
 	Tcl_CreateObjCommand(interp, "opd_setExit", opd_tcl_setExit, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
 	Tcl_CreateObjCommand(interp, "gdb_stepNext", gdb_tcl_stepNext, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
-	Tcl_CreateObjCommand(interp, "gdb_step", gdb_tcl_stepNext, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
+	Tcl_CreateObjCommand(interp, "gdb_step", gdb_tcl_step, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
 	Tcl_CreateObjCommand(interp, "gdb_stepFinish", gdb_tcl_stepFinish, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
 	Tcl_CreateObjCommand(interp, "gdb_setPID", gdb_tcl_set_pid, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
 	Tcl_CreateObjCommand(interp, "gdb_call", gdb_tcl_call, (ClientData)NULL, (Tcl_CmdDeleteProc *) NULL);
@@ -463,15 +463,14 @@ int main(int argc, char* argv[]) {
 
 	exitflag = 0;
 
-	// This is only handling the initial setup?
 	do {
 		alarm(timeout);
-		printf("OPDDO next_event\n");
+		//printf("OPDDO next_event\n");
 		fflush(stdout);
 		
 		event = gdb_next_event();
 
-		printf("OPD: Event %d\n", event);
+		//printf("OPD: Event %d\n", event);
 		fflush(stdout);
 
 		/*
@@ -506,6 +505,10 @@ int main(int argc, char* argv[]) {
 		case GDB_WPS:
 			Tcl_Eval(interp, gdb_dispatchWatchpointScope());
 			break;
+		case GDB_STEP:
+			//printf("OPD DO got GDB_STEP\n");
+			Tcl_Eval(interp, (char*)gdb_dispatchStepFunction());
+			break;
 		case GDB_SIGSEG:
 			Tcl_Eval(interp, "opd_dispatchSigSeg");
 			break;
@@ -513,16 +516,13 @@ int main(int argc, char* argv[]) {
 			Tcl_Eval(interp, "opd_dispatchStdOut");
 			break;
 		case GDB_PRGEXT:
-			printf("OPD GOT EXIT\n");
+			//printf("OPD GOT EXIT\n");
 			fflush(stdout);
 			Tcl_Eval(interp, "opd_dispatchPrgExt");
 			exitflag = 2;
 			break;
 
 			//DO NOTHING
-		case GDB_STEP:
-			printf("OPD DO got GDB_STEP\n");
-			break;
 		case GDB_RUNNING:
 		case GDB_PROMPT:
 		case 0:

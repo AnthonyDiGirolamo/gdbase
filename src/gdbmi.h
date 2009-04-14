@@ -61,6 +61,7 @@ int gdb_tcl_continue(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Ob
 int gdb_tcl_getStackFrames(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 int gdb_tcl_listLocals(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 int gdb_tcl_stepNext(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
+int gdb_tcl_step(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 int gdb_tcl_stepFinish(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 int gdb_tcl_set_pid(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 int gdb_tcl_call(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
