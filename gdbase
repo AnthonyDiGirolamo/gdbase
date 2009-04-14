@@ -25,6 +25,7 @@ if os.environ.keys().count('GDBASE_PREFIX') > 0:
 	sys.path.append(opd_dir + '/share/gdbase')
 
 from gdbase import *
+from endofrun import *
 
 def usage():
 	st = """Usage: gdbase -c database_config -j jobid [-a agent]"""
@@ -32,17 +33,18 @@ def usage():
 
 def main():
 	try:
-		opts,args = getopt.getopt(sys.argv[1:], "a:j:c:h")
+		opts,args = getopt.getopt(sys.argv[1:], "a:j:c:hi")
 	except getopt.GetoptError, err:
 		print str(err)
 		usage()
 		return
 
+	interactive = False
 	jobid = None
 	dbfile = None
 	database = None
 	agents = []
-		
+
 	for o,a in opts:
 		if o in ("-h", "--help"):
 			usage()
@@ -53,6 +55,8 @@ def main():
 			jobid = a
 		elif o in ("-c", "--config"):
 			dbfile = a
+		elif o in ("-i", "--interactive"):
+			interactive = True
 
 	f = open(dbfile,'r')
 	database = f.readline()
@@ -61,25 +65,35 @@ def main():
 	database = database.replace('\n','')
 	db1 = database.split(' ')
 	db2 = []
-	
+
 	for i in db1:
 		db2.append(i.split('='))
 
 	dbdict = dict(db2)
 	database = dbdict['host'] + ':' + dbdict['dbname'] + ':' + dbdict['user'] + ':' + dbdict['password']
-	exec "from endofrun import *"
 	agent(jobid, database)
-	#agent(jobid)
 
-	# add error checking on agent names
-
-	for a in agents:
-		print a,
-	print ''
-
-	for a in agents:	
-		exec "from " + a + " import *"
-		agent(jobid, database)
+	if not interactive:
+		# add error checking on agent names
+		for a in agents:
+			print a,
+		print ''
+		for a in agents:
+			exec "from " + a + " import *"
+			agent(jobid, database)
+	else:
+		import traceback, code
+		db = GDBase()
+		db.connect(database)
+		J = db.getJob(jobid)
+		M = J.getMessages()
+		try:
+			raise None
+		except:
+			frame = sys.exc_info()[2].tb_frame
+		namespace = dict(frame.f_globals)
+		namespace.update(frame.f_locals)
+		code.interact(banner="Entering Interactive Session", local=namespace)
 
 if __name__ == "__main__":
 	main()

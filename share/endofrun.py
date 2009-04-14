@@ -49,7 +49,7 @@ def agent(jobid = None, database = None):
 
 	#Now run Detectors to "find" some errors
 
-	print "Agent Results: ",
+	#print "Agent Results: ",
 
 if __name__ == "__main__":
 	agent()
