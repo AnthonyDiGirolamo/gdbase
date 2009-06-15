@@ -45,6 +45,8 @@ dbmerge: $(SRC)/dbmerge.c $(SRC)/parser.c $(SRC)/vector.c
 	$(CC) $(CFLAGS) $? $(LDFLAGS) -lpq -o $@
 
 install:
+	$(INSTALL) -m 644 share/single_step.tcl  $(INSTALLDIR)$(SHARES)/single_step.tcl
+	$(INSTALL) -m 644 share/single_step.py  $(INSTALLDIR)$(SHARES)/single_step.py
 	$(INSTALL) -m 644 share/allgather.py  $(INSTALLDIR)$(SHARES)/allgather.py
 	$(INSTALL) -m 644 share/allgather.tcl $(INSTALLDIR)$(SHARES)/allgather.tcl
 	$(INSTALL) -m 644 share/deadlock.py   $(INSTALLDIR)$(SHARES)/deadlock.py

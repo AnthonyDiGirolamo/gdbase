@@ -23,11 +23,11 @@ import sys
 from gdbase import *
 
 #connect to database
+
 def agent(jobid = None, database = None):
 	db = GDBase()
 	db.connect(database)
 
-	# Obtain Job
 	try:
 		J = db.getJob(jobid)
 	except:	
@@ -35,25 +35,36 @@ def agent(jobid = None, database = None):
 		sys.exit()
 		return
 
-	#print "OPD End of execution report"
-	print "PBS JOBID: %s" % (J.getPBSID())
-	print "DatabaseID: %s" % (J.getDBID())
-	print "Statistics:"
-
-	print "\tstart:\t%s" % J.getStartTime()
-	print "\tend:\t%s" % J.getEndTime()
-
-	print "\telapsed:\t%s" % J.getElapsedTime()
-
-	print "\tncpus:\t\t%s" % J.getJobSize()
-
 	M = J.getMessages()
-	print "\tMessages:\t%s" % M.getCount()
+	
+	locals = []
+	stack = []
 
-	#Now run Detectors to "find" some errors
+	M.setKey('opd.step.local')
+	if M.getCount() > 0:
+		steps = M.getAll()
+		for s in steps:
+			value = parsegdb(s['value'])
+			locals.append(value['locals'])
 
-	#print "Agent Results: ",
+	M.setKey('opd.step.stack')
+	if M.getCount() > 0:
+		steps = M.getAll()
+		for s in steps:
+			value = parsegdb(s['value'])
+			stack.append(value['stack'])
+
+	print len(locals)
+	print len(stack)
+
+	#for i in range(0,9):
+	for i in stack:
+		#print locals[i]
+		#print i[0]['func']
+		#if i[0]['func'] != 'main':
+		#	print i
+		if len(i) > 1:
+			print i
 
 if __name__ == "__main__":
-	agent()
-
+        agent(None)
